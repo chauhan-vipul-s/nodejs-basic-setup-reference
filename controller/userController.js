@@ -2,6 +2,7 @@ const User = require("../models/user");
 const asyncHandler = require("express-async-handler");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const mongoose = require("mongoose");
 
 //@desc Register User API
 //@route POST  /api/v1/user/register
@@ -153,7 +154,7 @@ const getUsers = asyncHandler(async (req, res) => {
 const getUserById = asyncHandler(async (req, res) => {
   const userId = req.params.id;
 
-  if (!userId) {
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
     res.status(400);
     throw new Error("Invalid UserId or UserId is missing");
   }
@@ -180,12 +181,12 @@ const getUserById = asyncHandler(async (req, res) => {
 const updateUser = asyncHandler(async (req, res) => {
   const userId = req.params.id;
 
-  if (!userId) {
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
     res.status(404);
     throw new Error("Invalid UserId or UserId is missing");
   }
 
-  const user = User.findById(userId);
+  const user = await User.findById(userId);
   if (!user) {
     res.status(404);
     throw new Error("User Not Found");
@@ -232,7 +233,28 @@ const updateUser = asyncHandler(async (req, res) => {
 //@route Delete  /api/v1/user/:id
 //@access Private
 const deleteUser = asyncHandler(async (req, res) => {
-  res.status(200).json({ message: "delete user by id" });
+  const userId = req.params.id;
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    res.status(404);
+    throw new Error("Invalid UserId or UserId is missing");
+  }
+  const user = await User.findById(userId);
+  console.log(`user ${user}`);
+  if (!user) {
+    res.status(404);
+    throw new Error("User Not Found");
+  }
+  const deleteUser = await User.findByIdAndDelete(userId, { password: 0 });
+  if (!deleteUser) {
+    res.status(404);
+    throw new Error("User Not Found");
+  }
+  res.status(200).json({
+    statusCode: res.statusCode,
+    status: true,
+    message: "user get deleted successfully",
+    data: deleteUser,
+  });
 });
 
 module.exports = {
